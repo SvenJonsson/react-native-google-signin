@@ -4,6 +4,9 @@ import android.accounts.Account;
 import android.app.Activity;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.Bundle;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.BaseActivityEventListener;
@@ -37,10 +40,16 @@ import java.util.HashMap;
 import java.util.Map;
 
 
-public class RNGoogleSigninModule extends ReactContextBaseJavaModule {
+public class RNGoogleSigninModule extends ReactContextBaseJavaModule implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
     private GoogleApiClient _apiClient;
 
     public static final int RC_SIGN_IN = 9001;
+    public static final int ACTION_NONE = 0;
+    public static final int ACTION_SIGN_IN = 1;
+    public static final int ACTION_SIGN_OUT = 2;
+    public static final int ACTION_REVOKE = 3;;
+
+    private int _action = ACTION_NONE;
 
     public RNGoogleSigninModule(final ReactApplicationContext reactContext) {
         super(reactContext);
@@ -320,8 +329,6 @@ public class RNGoogleSigninModule extends ReactContextBaseJavaModule {
 
             params.putString("id", acct.getId());
             params.putString("name", acct.getDisplayName());
-            params.putString("givenName", acct.getGivenName());
-            params.putString("familyName", acct.getFamilyName());
             params.putString("email", acct.getEmail());
             params.putString("photo", photoUrl != null ? photoUrl.toString() : null);
             params.putString("idToken", acct.getIdToken());
@@ -340,5 +347,20 @@ public class RNGoogleSigninModule extends ReactContextBaseJavaModule {
             getReactApplicationContext().getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
                     .emit(isSilent ? "RNGoogleSignInSilentError" : "RNGoogleSignInError", params);
         }
+    }
+
+    @Override
+    public void onConnected(@Nullable Bundle bundle) {
+
+    }
+
+    @Override
+    public void onConnectionSuspended(int i) {
+
+    }
+
+    @Override
+    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
+
     }
 }
