@@ -40,7 +40,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 
-public class RNGoogleSigninModule extends ReactContextBaseJavaModule implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
+public class RNGoogleSigninModule extends ReactContextBaseJavaModule  {
     private GoogleApiClient _apiClient;
 
     public static final int RC_SIGN_IN = 9001;
@@ -149,10 +149,7 @@ public class RNGoogleSigninModule extends ReactContextBaseJavaModule implements 
 
     @ReactMethod
     public void currentUserAsync() {
-        if (_apiClient == null) {
-            emitError(EVENT_SIGN_IN_SILENT_ERROR, -1, "GoogleSignin client not initialized - call configure first");
-            return;
-        }
+        if (!isGoogleClientReady(EVENT_SIGN_IN_SILENT_ERROR)) return;
 
         final Activity activity = getCurrentActivity();
 
@@ -185,10 +182,7 @@ public class RNGoogleSigninModule extends ReactContextBaseJavaModule implements 
 
     @ReactMethod
     public void signIn() {
-        if (_apiClient == null) {
-            emitError(EVENT_SIGN_IN_ERROR, -1, "GoogleSignin: client not initialized - call configure first");
-            return;
-        }
+        if (!isGoogleClientReady(EVENT_SIGN_IN_ERROR)) return;
 
         final Activity activity = getCurrentActivity();
 
@@ -208,10 +202,7 @@ public class RNGoogleSigninModule extends ReactContextBaseJavaModule implements 
 
     @ReactMethod
     public void signOut() {
-        if (_apiClient == null) {
-            emitError(EVENT_SIGN_OUT_ERROR, -1, "GoogleSignin: client not initialized - call configure first");
-            return;
-        }
+        if (!isGoogleClientReady(EVENT_SIGN_OUT_ERROR)) return;
 
         Auth.GoogleSignInApi.signOut(_apiClient).setResultCallback(new ResultCallback<Status>() {
             @Override
@@ -230,10 +221,7 @@ public class RNGoogleSigninModule extends ReactContextBaseJavaModule implements 
 
     @ReactMethod
     public void revokeAccess() {
-        if (_apiClient == null) {
-            emitError(EVENT_REVOKE_ERROR, -1, "GoogleSignin is undefined - call configure first");
-            return;
-        }
+        if (!isGoogleClientReady(EVENT_REVOKE_ERROR)) return;
 
         Auth.GoogleSignInApi.revokeAccess(_apiClient).setResultCallback(new ResultCallback<Status>() {
             @Override
@@ -361,18 +349,17 @@ public class RNGoogleSigninModule extends ReactContextBaseJavaModule implements 
         }
     }
 
-    @Override
-    public void onConnected(@Nullable Bundle bundle) {
+    private boolean isGoogleClientReady(String error) {
+        if (_apiClient == null) {
+            emitError(error, -1, "GoogleSignin: google client not initialized - call configure() first");
+            return false;
+        }
 
-    }
+        if (!_apiClient.isConnected()) {
+            emitError(error, -1, "GoogleSignin: google client not connected");
+            return false;
+        }
 
-    @Override
-    public void onConnectionSuspended(int i) {
-
-    }
-
-    @Override
-    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
-
+        return true;
     }
 }
