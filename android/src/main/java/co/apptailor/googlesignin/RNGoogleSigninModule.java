@@ -40,7 +40,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 
-public class RNGoogleSigninModule extends ReactContextBaseJavaModule  {
+public class RNGoogleSigninModule extends ReactContextBaseJavaModule {
     private GoogleApiClient _apiClient;
 
     public static final int RC_SIGN_IN = 9001;
@@ -349,14 +349,14 @@ public class RNGoogleSigninModule extends ReactContextBaseJavaModule  {
         }
     }
 
-    private boolean isGoogleClientReady(String error) {
+    private boolean isGoogleClientReady(String errorEvent) {
         if (_apiClient == null) {
-            emitError(error, -1, "GoogleSignin: google client not initialized - call configure() first");
+            emitError(errorEvent, -1, "GoogleSignin: google client not initialized - call configure() first");
             return false;
         }
 
         if (!_apiClient.isConnected()) {
-            emitError(error, -1, "GoogleSignin: google client not connected");
+            emitError(errorEvent, -1, "GoogleSignin: google client not connected");
             return false;
         }
 
