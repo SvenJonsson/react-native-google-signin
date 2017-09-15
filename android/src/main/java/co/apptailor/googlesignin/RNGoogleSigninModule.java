@@ -44,12 +44,15 @@ public class RNGoogleSigninModule extends ReactContextBaseJavaModule implements 
     private GoogleApiClient _apiClient;
 
     public static final int RC_SIGN_IN = 9001;
-    public static final int ACTION_NONE = 0;
-    public static final int ACTION_SIGN_IN = 1;
-    public static final int ACTION_SIGN_OUT = 2;
-    public static final int ACTION_REVOKE = 3;;
 
-    private int _action = ACTION_NONE;
+    public static final String EVENT_SIGN_IN_SUCCESS = "RNGoogleSignInSuccess";
+    public static final String EVENT_SIGN_IN_SILENT_SUCCESS = "RNGoogleSignInSilentSuccess";
+    public static final String EVENT_SIGN_IN_ERROR = "RNGoogleSignInError";
+    public static final String EVENT_SIGN_IN_SILENT_ERROR = "RNGoogleSignInSilentError";
+    public static final String EVENT_SIGN_OUT_SUCCESS = "RNGoogleSignOutSuccess";
+    public static final String EVENT_SIGN_OUT_ERROR = "RNGoogleSignOutError";
+    public static final String EVENT_REVOKE_SUCCESS = "RNGoogleRevokeSuccess";
+    public static final String EVENT_REVOKE_ERROR = "RNGoogleRevokeError";
 
     public RNGoogleSigninModule(final ReactApplicationContext reactContext) {
         super(reactContext);
@@ -59,9 +62,18 @@ public class RNGoogleSigninModule extends ReactContextBaseJavaModule implements 
     private class RNGoogleSigninActivityEventListener extends BaseActivityEventListener {
         @Override
         public void onActivityResult(Activity activity, final int requestCode, final int resultCode, final Intent intent) {
-            if (requestCode == RNGoogleSigninModule.RC_SIGN_IN) {
+            if (resultCode == Activity.RESULT_OK && requestCode == RNGoogleSigninModule.RC_SIGN_IN) {
                 GoogleSignInResult result = Auth.GoogleSignInApi.getSignInResultFromIntent(intent);
-                handleSignInResult(result, false);
+
+                if (result != null) {
+                    handleSignInResult(result, false);
+                } else {
+                    emitError(EVENT_SIGN_IN_SILENT_ERROR, -1, "Google Sign In result empty");
+                    //Reject promise giving a fancy error, in order to prevent crashing the whole app.
+                }
+            } else {
+                emitError(EVENT_SIGN_IN_SILENT_ERROR, -1, "Google Sign In error");
+                //Reject promise giving a fancy error, in order to prevent crashing the whole app.
             }
         }
     }
@@ -138,14 +150,14 @@ public class RNGoogleSigninModule extends ReactContextBaseJavaModule implements 
     @ReactMethod
     public void currentUserAsync() {
         if (_apiClient == null) {
-            emitError("RNGoogleSignInSilentError", -1, "GoogleSignin is undefined - call configure first");
+            emitError(EVENT_SIGN_IN_SILENT_ERROR, -1, "GoogleSignin client not initialized - call configure first");
             return;
         }
 
         final Activity activity = getCurrentActivity();
 
         if (activity == null) {
-            emitError("RNGoogleSignInSilentError", -1, "No activity");
+            emitError(EVENT_SIGN_IN_SILENT_ERROR, -1, "No activity");
             return;
         }
 
@@ -174,14 +186,14 @@ public class RNGoogleSigninModule extends ReactContextBaseJavaModule implements 
     @ReactMethod
     public void signIn() {
         if (_apiClient == null) {
-            emitError("RNGoogleSignInError", -1, "GoogleSignin is undefined - call configure first");
+            emitError(EVENT_SIGN_IN_ERROR, -1, "GoogleSignin: client not initialized - call configure first");
             return;
         }
 
         final Activity activity = getCurrentActivity();
 
         if (activity == null) {
-            emitError("RNGoogleSignInSilentError", -1, "No activity");
+            emitError(EVENT_SIGN_IN_SILENT_ERROR, -1, "No activity");
             return;
         }
 
@@ -197,7 +209,7 @@ public class RNGoogleSigninModule extends ReactContextBaseJavaModule implements 
     @ReactMethod
     public void signOut() {
         if (_apiClient == null) {
-            emitError("RNGoogleSignOutError", -1, "GoogleSignin is undefined - call configure first");
+            emitError(EVENT_SIGN_OUT_ERROR, -1, "GoogleSignin: client not initialized - call configure first");
             return;
         }
 
@@ -206,11 +218,11 @@ public class RNGoogleSigninModule extends ReactContextBaseJavaModule implements 
             public void onResult(Status status) {
                 if (status.isSuccess()) {
                     getReactApplicationContext().getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-                            .emit("RNGoogleSignOutSuccess", null);
+                            .emit(EVENT_SIGN_OUT_SUCCESS, null);
                 } else {
                     int code = status.getStatusCode();
                     String error = GoogleSignInStatusCodes.getStatusCodeString(code);
-                    emitError("RNGoogleSignOutError", code, error);
+                    emitError(EVENT_SIGN_OUT_ERROR, code, error);
                 }
             }
         });
@@ -219,7 +231,7 @@ public class RNGoogleSigninModule extends ReactContextBaseJavaModule implements 
     @ReactMethod
     public void revokeAccess() {
         if (_apiClient == null) {
-            emitError("RNGoogleRevokeError", -1, "GoogleSignin is undefined - call configure first");
+            emitError(EVENT_REVOKE_ERROR, -1, "GoogleSignin is undefined - call configure first");
             return;
         }
 
@@ -228,11 +240,11 @@ public class RNGoogleSigninModule extends ReactContextBaseJavaModule implements 
             public void onResult(Status status) {
                 if (status.isSuccess()) {
                     getReactApplicationContext().getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-                            .emit("RNGoogleRevokeSuccess", null);
+                            .emit(EVENT_REVOKE_SUCCESS, null);
                 } else {
                     int code = status.getStatusCode();
                     String error = GoogleSignInStatusCodes.getStatusCodeString(code);
-                    emitError("RNGoogleRevokeError", code, error);
+                    emitError(EVENT_REVOKE_ERROR, code, error);
                 }
             }
         });
@@ -336,7 +348,7 @@ public class RNGoogleSigninModule extends ReactContextBaseJavaModule implements 
             params.putArray("scopes", scopes);
 
             getReactApplicationContext().getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-                    .emit(isSilent ? "RNGoogleSignInSilentSuccess" : "RNGoogleSignInSuccess" , params);
+                    .emit(isSilent ? EVENT_SIGN_IN_SILENT_SUCCESS : EVENT_SIGN_IN_SUCCESS , params);
         } else {
             int code = result.getStatus().getStatusCode();
             String error = GoogleSignInStatusCodes.getStatusCodeString(code);
@@ -345,7 +357,7 @@ public class RNGoogleSigninModule extends ReactContextBaseJavaModule implements 
             params.putString("error", error);
 
             getReactApplicationContext().getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-                    .emit(isSilent ? "RNGoogleSignInSilentError" : "RNGoogleSignInError", params);
+                    .emit(isSilent ? EVENT_SIGN_IN_SILENT_ERROR : EVENT_SIGN_IN_ERROR, params);
         }
     }
 
