@@ -82,6 +82,10 @@ class GoogleSignin {
     return RNGoogleSignin.configure(...params);
   }
 
+  hasAuthInKeychain(callback) {
+    callback(true);
+  }
+
   currentUserAsync() {
     return new Promise((resolve, reject) => {
       const sucessCb = DeviceEventEmitter.addListener('RNGoogleSignInSilentSuccess', (user) => {

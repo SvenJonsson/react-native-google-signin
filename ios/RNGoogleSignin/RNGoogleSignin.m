@@ -25,11 +25,15 @@ RCT_EXPORT_METHOD(configure:(NSArray*)scopes iosClientId:(NSString*)iosClientId 
   }
 }
 
+RCT_EXPORT_METHOD(hasAuthInKeychain:(RCTResponseSenderBlock)callback)
+{
+  callback(@[[NSNumber numberWithBool:[[GIDSignIn sharedInstance] hasAuthInKeychain]]]);
+}
+
 RCT_EXPORT_METHOD(currentUserAsync)
 {
   [[GIDSignIn sharedInstance] signInSilently];
 }
-
 
 RCT_EXPORT_METHOD(signIn)
 {

@@ -21,14 +21,23 @@ class GoogleSigninButton extends Component {
   };
 
   componentDidMount() {
-    this._clickListener = NativeAppEventEmitter.addListener('RNGoogleSignInWillDispatch', () => {
-      GoogleSigninSingleton.signinIsInProcess = true;
-      this.props.onPress && this.props.onPress();
+    this._dispatchListener = NativeAppEventEmitter.addListener('RNGoogleSignInWillDispatch', () => {
+      this.props.onDispatch && this.props.onDispatch();
+    });
+
+    this._signInSuccessListener = NativeAppEventEmitter.addListener('RNGoogleSignInSuccess', (user) => {
+      this.props.onSignIn && this.props.onSignIn(user);
+    });
+
+    this._signInErrorListener = NativeAppEventEmitter.addListener('RNGoogleSignInError', (error) => {
+      this.props.onError && this.props.onError(error);
     });
   }
 
   componentWillUnmount() {
     this._clickListener && this._clickListener.remove();
+    this._signInSuccessListener && this._signInSuccessListener.remove();
+    this._signInErrorListener && this._signInErrorListener.remove();
   }
 
   render() {
@@ -56,7 +65,6 @@ class GoogleSignin {
 
   constructor() {
     this._user = null;
-    this.signinIsInProcess = false;
   }
 
   hasPlayServices(params = { autoResolve: true }) {
@@ -78,6 +86,10 @@ class GoogleSignin {
 
     RNGoogleSignin.configure(...params);
     return Promise.resolve(true);
+  }
+
+  hasAuthInKeychain(callback) {
+    RNGoogleSignin.hasAuthInKeychain(callback);
   }
 
   currentUserAsync() {
@@ -105,18 +117,16 @@ class GoogleSignin {
     return new Promise((resolve, reject) => {
       const sucessCb = NativeAppEventEmitter.addListener('RNGoogleSignInSuccess', (user) => {
         this._user = user;
-        this.signinIsInProcess = false;
         this._removeListeners(sucessCb, errorCb);
         resolve(user);
       });
 
       const errorCb = NativeAppEventEmitter.addListener('RNGoogleSignInError', (err) => {
         this._removeListeners(sucessCb, errorCb);
-        this.signinIsInProcess = false;
         reject(err);
       });
 
-      !this.signinIsInProcess && RNGoogleSignin.signIn();
+      RNGoogleSignin.signIn();
     });
   }
 
@@ -130,6 +140,7 @@ class GoogleSignin {
   revokeAccess() {
     return new Promise((resolve, reject) => {
       const sucessCb = NativeAppEventEmitter.addListener('RNGoogleRevokeSuccess', () => {
+        this._user = null;
         this._removeListeners(sucessCb, errorCb);
         resolve();
       });
